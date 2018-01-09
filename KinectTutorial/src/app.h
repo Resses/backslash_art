@@ -13,8 +13,8 @@
 #include <Kinect.h>
 
 //size of the window
-#define SCRWIDTH 512
-#define SCRHEIGHT 424
+#define SCRWIDTH 1920
+#define SCRHEIGHT 1080
 
 //some useful typedefs for explicit type sizes
 typedef unsigned char uint8;
@@ -54,13 +54,8 @@ private:
   uint32* m_pixelBuffer = nullptr;
 
   IKinectSensor* m_sensor = nullptr;
-  IDepthFrameReader* m_depthFrameReader = nullptr;
   IColorFrameReader* m_colorFrameReader = nullptr;
-  ICoordinateMapper* m_coordinateMapper = nullptr;
 
   uint32* m_colorBuffer = nullptr;
 
-  ColorSpacePoint* m_colorSpacePoints = nullptr;
-  uint16 *m_depthBuffer = nullptr;
-  int m_depthWidth = 0, m_depthHeight = 0;
 };
