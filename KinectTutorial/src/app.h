@@ -55,6 +55,8 @@ private:
 
   IKinectSensor* m_sensor = nullptr;
   IColorFrameReader* m_colorFrameReader = nullptr;
+  IBodyFrameReader* m_bodyFrameReader = nullptr;
+  IBody* m_bodies[BODY_COUNT] = { 0 };
 
   uint32* m_colorBuffer = nullptr;
 

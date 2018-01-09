@@ -38,6 +38,26 @@ void App::Init()
   //allocate color buffer
   m_colorBuffer = new uint32[1920 * 1080];
 
+  //get body frame source
+  IBodyFrameSource* bodyFrameSource;
+  hr = m_sensor->get_BodyFrameSource(&bodyFrameSource);
+  if (FAILED(hr))
+  {
+	  printf("Failed to get body frame source!\n");
+	  exit(10);
+  }
+
+  //get body frame reader
+  hr = bodyFrameSource->OpenReader(&m_bodyFrameReader);
+  if (FAILED(hr))
+  {
+	  printf("Failed to open body frame reader!\n");
+	  exit(10);
+  }
+
+  //release the body frame source
+  SafeRelease(bodyFrameSource);
+
 }
 
 void App::Tick(float deltaTime)
@@ -65,7 +85,64 @@ void App::Tick(float deltaTime)
 	m_pixelBuffer[i] = m_colorBuffer[i];
   }
 
+  //body stuff
+  IBodyFrame* bodyFrame;
+  hr = m_bodyFrameReader->AcquireLatestFrame(&bodyFrame);
+  if (FAILED(hr))
+	  return;
 
+  hr = bodyFrame->GetAndRefreshBodyData(_countof(m_bodies), m_bodies);
+
+  if (FAILED(hr))
+	  return;
+
+  for (unsigned int bodyIndex = 0; bodyIndex < BODY_COUNT; bodyIndex++)
+  {
+	  IBody *body = m_bodies[bodyIndex];
+
+	  //Get the tracking status for the body, if it's not tracked we'll skip it
+	  BOOLEAN isTracked = false;
+	  hr = body->get_IsTracked(&isTracked);
+	  if (FAILED(hr) || isTracked == false) {
+		  continue;
+	  }
+
+	  printf("Body tracked!");
+
+	  //If we're here the body is tracked so lets get the joint properties for this skeleton
+	  Joint joints[JointType_Count];
+	  hr = body->GetJoints(_countof(joints), joints);
+	  if (SUCCEEDED(hr)) {
+		  //Let's print the head's position
+		  const CameraSpacePoint &headPos = joints[JointType_Head].Position;
+		  const CameraSpacePoint &leftHandPos = joints[JointType_HandLeft].Position;
+
+		  //Let's check if the use has his hand up
+		  if (leftHandPos.Y >= headPos.Y) {
+			  std::cout << "LEFT HAND UP!!\n";
+		  }
+
+		  HandState leftHandState;
+		  hr = body->get_HandLeftState(&leftHandState);
+		  if (SUCCEEDED(hr)) {
+			  if (leftHandState == HandState_Closed) {
+				  std::cout << "CLOSED HAND\n";
+			  }
+			  else if (leftHandState == HandState_Open) {
+				  std::cout << "OPEN HAND\n";
+			  }
+			  else if (leftHandState == HandState_Lasso) {
+				  std::cout << "PEW PEW HANDS\n";
+			  }
+			  else if (leftHandState == HandState_NotTracked) {
+				  std::cout << "HAND IS NOT TRACKED\n";
+			  }
+			  else if (leftHandState == HandState_Unknown) {
+				  std::cout << "HANDS STATE IS UNKNOWN\n";
+			  }
+		  }
+	  }
+  }
 }
 
 void App::Shutdown()
@@ -74,6 +151,7 @@ void App::Shutdown()
 
   delete[] m_colorBuffer;
   SafeRelease(m_colorFrameReader);
+  SafeRelease(m_bodyFrameReader);
 
   SafeRelease(m_sensor);
 }
