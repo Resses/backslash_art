@@ -96,6 +96,8 @@ void App::Tick(float deltaTime)
   if (FAILED(hr))
 	  return;
 
+  SafeRelease(bodyFrame);
+
   for (unsigned int bodyIndex = 0; bodyIndex < BODY_COUNT; bodyIndex++)
   {
 	  IBody *body = m_bodies[bodyIndex];
@@ -104,10 +106,11 @@ void App::Tick(float deltaTime)
 	  BOOLEAN isTracked = false;
 	  hr = body->get_IsTracked(&isTracked);
 	  if (FAILED(hr) || isTracked == false) {
+		  /*printf("Oh no it failed!!! %d \n", isTracked);*/
 		  continue;
 	  }
 
-	  printf("Body tracked!");
+	  /*printf("Body tracked!");*/
 
 	  //If we're here the body is tracked so lets get the joint properties for this skeleton
 	  Joint joints[JointType_Count];
@@ -142,6 +145,10 @@ void App::Tick(float deltaTime)
 			  }
 		  }
 	  }
+  }
+  for (int i = 0; i < BODY_COUNT; i++) 
+  {
+	  SafeRelease(m_bodies[i]);
   }
 }
 
