@@ -129,23 +129,30 @@ void App::Tick(float deltaTime)
 		  const CameraSpacePoint &rightHandPos = joints[JointType_HandRight].Position;
 
 		  //Let's check if the use has his hand up
-		  if (leftHandPos.Y >= headPos.Y) {
-			  std::cout << "LEFT HAND UP!!\n";
+		  if (leftHandPos.Y >= headPos.Y || rightHandPos.Y >= headPos.Y) {
+			  std::cout << "HAND UP!!\n";
 
-			  UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+			  if (!handraised) {
+				  handraised = true;
+				  on_off = !on_off;
+				  
+				  UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
 
-			  char buffer[OUTPUT_BUFFER_SIZE];
-			  osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+				  char buffer[OUTPUT_BUFFER_SIZE];
+				  osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
 
-			  p << osc::BeginBundleImmediate
-				  << osc::BeginMessage("/test1")
-				  << true << 23 << (float)3.1415 << "hello" << osc::EndMessage
-				  << osc::EndBundle;
+				  p << osc::BeginBundleImmediate
+					  << osc::BeginMessage("/arm_raised")
+					  << on_off << osc::EndMessage
+					  << osc::EndBundle;
 
-			  transmitSocket.Send(p.Data(), p.Size());
+				  transmitSocket.Send(p.Data(), p.Size());
+			  }
+			  
 		  }
-		  if (rightHandPos.Y >= headPos.Y) {
-			  std::cout << "RIGHT HAND UP!!\n";
+		  else
+		  {
+			  handraised = false;
 		  }
 
 

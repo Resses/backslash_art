@@ -57,6 +57,8 @@ private:
   IColorFrameReader* m_colorFrameReader = nullptr;
   IBodyFrameReader* m_bodyFrameReader = nullptr;
   IBody* m_bodies[BODY_COUNT] = { 0 };
+  BOOLEAN handraised = false;
+  BOOLEAN on_off = false;
 
   uint32* m_colorBuffer = nullptr;
 
