@@ -1,4 +1,11 @@
 #include "app.h"
+#include "OscOutboundPacketStream.h"
+#include "UdpSocket.h"
+
+#define ADDRESS "24.189.160.200"
+#define PORT 7000
+
+#define OUTPUT_BUFFER_SIZE 1024
 
 void App::Init()
 {
@@ -124,10 +131,24 @@ void App::Tick(float deltaTime)
 		  //Let's check if the use has his hand up
 		  if (leftHandPos.Y >= headPos.Y) {
 			  std::cout << "LEFT HAND UP!!\n";
+
+			  UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+
+			  char buffer[OUTPUT_BUFFER_SIZE];
+			  osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+
+			  p << osc::BeginBundleImmediate
+				  << osc::BeginMessage("/test1")
+				  << true << 23 << (float)3.1415 << "hello" << osc::EndMessage
+				  << osc::EndBundle;
+
+			  transmitSocket.Send(p.Data(), p.Size());
 		  }
 		  if (rightHandPos.Y >= headPos.Y) {
 			  std::cout << "RIGHT HAND UP!!\n";
 		  }
+
+
 
 		  HandState leftHandState;
 		  HandState rightHandState;
