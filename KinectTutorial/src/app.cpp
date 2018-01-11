@@ -119,28 +119,34 @@ void App::Tick(float deltaTime)
 		  //Let's print the head's position
 		  const CameraSpacePoint &headPos = joints[JointType_Head].Position;
 		  const CameraSpacePoint &leftHandPos = joints[JointType_HandLeft].Position;
+		  const CameraSpacePoint &rightHandPos = joints[JointType_HandRight].Position;
 
 		  //Let's check if the use has his hand up
 		  if (leftHandPos.Y >= headPos.Y) {
 			  std::cout << "LEFT HAND UP!!\n";
 		  }
+		  if (rightHandPos.Y >= headPos.Y) {
+			  std::cout << "RIGHT HAND UP!!\n";
+		  }
 
 		  HandState leftHandState;
+		  HandState rightHandState;
 		  hr = body->get_HandLeftState(&leftHandState);
+		  hr = body->get_HandRightState(&rightHandState);
 		  if (SUCCEEDED(hr)) {
-			  if (leftHandState == HandState_Closed) {
+			  if (leftHandState == HandState_Closed || rightHandState == HandState_Closed) {
 				  std::cout << "CLOSED HAND\n";
 			  }
-			  else if (leftHandState == HandState_Open) {
+			  else if (leftHandState == HandState_Open || rightHandState == HandState_Open) {
 				  std::cout << "OPEN HAND\n";
 			  }
-			  else if (leftHandState == HandState_Lasso) {
+			  else if (leftHandState == HandState_Lasso || rightHandState == HandState_Lasso) {
 				  std::cout << "PEW PEW HANDS\n";
 			  }
-			  else if (leftHandState == HandState_NotTracked) {
+			  else if (leftHandState == HandState_NotTracked || rightHandState == HandState_NotTracked) {
 				  std::cout << "HAND IS NOT TRACKED\n";
 			  }
-			  else if (leftHandState == HandState_Unknown) {
+			  else if (leftHandState == HandState_Unknown || rightHandState == HandState_Unknown) {
 				  std::cout << "HANDS STATE IS UNKNOWN\n";
 			  }
 		  }
