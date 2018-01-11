@@ -4,6 +4,7 @@
 #include <SDL.h>
 
 #include "app.h"
+#include "stdafx.h"
 
 using namespace std::chrono;
 typedef steady_clock Clock;

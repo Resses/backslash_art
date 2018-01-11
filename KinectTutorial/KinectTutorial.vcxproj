@@ -107,7 +107,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>../extern/glm/include/;../extern/SDL2/include/;$(KINECTSDK20_DIR)inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\shang\Documents\projects\KinectTutorialFinished\Win32Project1\Release\include;../extern/glm/include/;../extern/SDL2/include/;$(KINECTSDK20_DIR)inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -137,6 +137,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Win32Project1\Win32Project1.vcxproj">
+      <Project>{68de3714-b6fa-4dfe-971a-5a2d3e2b6b19}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

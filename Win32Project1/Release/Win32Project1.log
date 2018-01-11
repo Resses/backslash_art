@@ -1,0 +1,9 @@
+﻿  stdafx.cpp
+  IpEndpointName.cpp
+  NetworkingUtils.cpp
+  UdpSocket.cpp
+  OscOutboundPacketStream.cpp
+  OscPrintReceivedElements.cpp
+  OscReceivedElements.cpp
+  OscTypes.cpp
+  Win32Project1.vcxproj -> C:\Users\shang\Documents\projects\KinectTutorialFinished\Release\Win32Project1.lib
