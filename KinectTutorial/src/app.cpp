@@ -119,6 +119,22 @@ void App::Tick(float deltaTime)
 
 	  /*printf("Body tracked!");*/
 
+	  PointF leanAmount;
+	  hr = body->get_Lean(&leanAmount);
+	  if (FAILED(hr))
+		  return;
+
+	  float x = leanAmount.X;
+	  float y = leanAmount.Y;
+	  
+	  TrackingState is_lean_tracked;
+	  hr = body->get_LeanTrackingState(&is_lean_tracked);
+
+	  if (SUCCEEDED(hr) && is_lean_tracked == TrackingState_Tracked)
+	  {
+		  printf("X lean amt is %f and Y lean amt is %f", x, y);
+	  }
+
 	  //If we're here the body is tracked so lets get the joint properties for this skeleton
 	  Joint joints[JointType_Count];
 	  hr = body->GetJoints(_countof(joints), joints);
