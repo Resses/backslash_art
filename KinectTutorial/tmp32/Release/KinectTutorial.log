@@ -1,7 +1,9 @@
 ﻿  app.cpp
-src\app.cpp(70): warning C4100: 'deltaTime': unreferenced formal parameter
+src\app.cpp(97): warning C4100: 'deltaTime': unreferenced formal parameter
+src\app.cpp(156): warning C4189: 'y': local variable is initialized but not referenced
+src\app.cpp(155): warning C4189: 'x': local variable is initialized but not referenced
   Generating code
-  1 of 115 functions ( 0.9%) were compiled, the rest were copied from previous compilation.
+  2 of 119 functions ( 1.7%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
     1 functions had inline decision re-evaluated but remain unchanged
   Finished generating code

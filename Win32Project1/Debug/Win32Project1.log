@@ -1,0 +1,16 @@
+﻿  stdafx.cpp
+  OscTypes.cpp
+c:\users\shang\downloads\oscpack_1_1_0\osc\osctypes.cpp(53): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  OscReceivedElements.cpp
+c:\users\shang\downloads\oscpack_1_1_0\osc\oscreceivedelements.cpp(797): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  OscPrintReceivedElements.cpp
+c:\users\shang\downloads\oscpack_1_1_0\osc\oscprintreceivedelements.cpp(262): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  OscOutboundPacketStream.cpp
+c:\users\shang\downloads\oscpack_1_1_0\osc\oscoutboundpacketstream.cpp(684): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  UdpSocket.cpp
+c:\users\shang\downloads\oscpack_1_1_0\ip\win32\udpsocket.cpp(572): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  NetworkingUtils.cpp
+c:\users\shang\downloads\oscpack_1_1_0\ip\win32\networkingutils.cpp(96): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  IpEndpointName.cpp
+c:\users\shang\downloads\oscpack_1_1_0\ip\ipendpointname.cpp(89): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "stdafx.h"' to your source?
+  Generating Code...

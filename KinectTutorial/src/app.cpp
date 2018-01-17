@@ -7,6 +7,20 @@
 
 #define OUTPUT_BUFFER_SIZE 1024
 
+// define the face frame features required to be computed by this application
+static const DWORD c_FaceFrameFeatures =
+FaceFrameFeatures::FaceFrameFeatures_BoundingBoxInColorSpace
+| FaceFrameFeatures::FaceFrameFeatures_PointsInColorSpace
+| FaceFrameFeatures::FaceFrameFeatures_RotationOrientation
+| FaceFrameFeatures::FaceFrameFeatures_Happy
+| FaceFrameFeatures::FaceFrameFeatures_RightEyeClosed
+| FaceFrameFeatures::FaceFrameFeatures_LeftEyeClosed
+| FaceFrameFeatures::FaceFrameFeatures_MouthOpen
+| FaceFrameFeatures::FaceFrameFeatures_MouthMoved
+| FaceFrameFeatures::FaceFrameFeatures_LookingAway
+| FaceFrameFeatures::FaceFrameFeatures_Glasses
+| FaceFrameFeatures::FaceFrameFeatures_FaceEngagement;
+
 void App::Init()
 {
   //put initialization stuff here
@@ -64,7 +78,20 @@ void App::Init()
 
   //release the body frame source
   SafeRelease(bodyFrameSource);
-
+  
+  for (int i = 0; i < BODY_COUNT; i++)
+  {
+	  // create the face frame source by specifying the required face frame features
+	  hr = CreateFaceFrameSource(m_sensor, 0, c_FaceFrameFeatures, &m_faceFrameSources[i]);
+	  if (FAILED(hr))
+	  {
+		  printf("Createfaceframesource failed!");
+	  }
+	  if (SUCCEEDED(hr))
+	  {
+	   hr = m_faceFrameSources[i]->OpenReader(&m_faceFrameReaders[i]);
+	  }
+  }
 }
 
 void App::Tick(float deltaTime)
@@ -99,6 +126,7 @@ void App::Tick(float deltaTime)
 	  return;
 
   hr = bodyFrame->GetAndRefreshBodyData(_countof(m_bodies), m_bodies);
+  bool bHaveBodyData = SUCCEEDED(hr);
 
   if (FAILED(hr))
 	  return;
@@ -132,7 +160,7 @@ void App::Tick(float deltaTime)
 
 	  if (SUCCEEDED(hr) && is_lean_tracked == TrackingState_Tracked)
 	  {
-		  printf("X lean amt is %f and Y lean amt is %f", x, y);
+		 /* printf("X lean amt is %f and Y lean amt is %f", x, y);*/
 	  }
 
 	  //If we're here the body is tracked so lets get the joint properties for this skeleton
@@ -177,7 +205,7 @@ void App::Tick(float deltaTime)
 		  HandState rightHandState;
 		  hr = body->get_HandLeftState(&leftHandState);
 		  hr = body->get_HandRightState(&rightHandState);
-		  if (SUCCEEDED(hr)) {
+		  /*if (SUCCEEDED(hr)) {
 			  if (leftHandState == HandState_Closed || rightHandState == HandState_Closed) {
 				  std::cout << "CLOSED HAND\n";
 			  }
@@ -193,12 +221,125 @@ void App::Tick(float deltaTime)
 			  else if (leftHandState == HandState_Unknown || rightHandState == HandState_Unknown) {
 				  std::cout << "HANDS STATE IS UNKNOWN\n";
 			  }
-		  }
+		  }*/
 	  }
   }
-  for (int i = 0; i < BODY_COUNT; i++) 
+  for (int iFace = 0; iFace < BODY_COUNT; ++iFace)
   {
-	  SafeRelease(m_bodies[i]);
+	  // retrieve the latest face frame from this reader
+	  IFaceFrame* pFaceFrame = nullptr;
+	  hr = m_faceFrameReaders[iFace]->AcquireLatestFrame(&pFaceFrame);
+
+	  BOOLEAN bFaceTracked = false;
+	  if (SUCCEEDED(hr) && nullptr != pFaceFrame)
+	  {
+		  // check if a valid face is tracked in this face frame
+		  hr = pFaceFrame->get_IsTrackingIdValid(&bFaceTracked);
+	  }
+
+	  if (SUCCEEDED(hr))
+	  {
+		  if (bFaceTracked)
+		  {
+			  //printf("Face tracked!");
+
+			  IFaceFrameResult* pFaceFrameResult = nullptr;
+			  Vector4 faceRotation;
+			  DetectionResult faceProperties[FaceProperty::FaceProperty_Count];
+
+			  hr = pFaceFrame->get_FaceFrameResult(&pFaceFrameResult);
+
+			  // need to verify if pFaceFrameResult contains data before trying to access it
+			  if (SUCCEEDED(hr) && pFaceFrameResult != nullptr)
+			  {
+				  //printf("Face is detected!");
+				  if (SUCCEEDED(hr))
+				  {
+					  hr = pFaceFrameResult->get_FaceRotationQuaternion(&faceRotation);
+				  }
+
+				  if (SUCCEEDED(hr))
+				  {
+					  hr = pFaceFrameResult->GetFaceProperties(FaceProperty::FaceProperty_Count, faceProperties);
+					  if (SUCCEEDED(hr))
+					  {
+						  if (faceProperties[FaceProperty_MouthOpen] == DetectionResult_Yes)
+						  {
+							  printf("MOUTH'S OPEN BITCH\n");
+						  }
+						  if (faceProperties[FaceProperty_LeftEyeClosed] == DetectionResult_Yes)
+						  {
+							  printf("LEFT EYE CLOSED MOTHERFUCKER!!!\n");
+						  }
+						  if (faceProperties[FaceProperty_RightEyeClosed] == DetectionResult_Yes)
+						  {
+							  printf("RIGHT EYE CLOSED BASTARD!!!\n");
+						  }
+						 /* if (faceProperties[FaceProperty_Happy] == DetectionResult_Yes)
+						  {
+							  printf("I'M HAPPY YOU ASSHOLE!!!\n");
+						  }*/
+						  /*if (faceProperties[FaceProperty_MouthMoved] == DetectionResult_Yes)
+						  {
+							  printf("MOVED MOUTH YOU STUPID SHIT!!!\n");
+						  }*/
+						  /*if (faceProperties[FaceProperty_LookingAway] == DetectionResult_Yes)
+						  {
+							  printf("LOOKING AWAY FUCKFACE!!!\n");
+						  }*/
+						  /*if (faceProperties[FaceProperty_WearingGlasses] == DetectionResult_Yes)
+						  {
+							  printf("I'M FUCKING WEARING GLASSES!!!\n");
+						  }
+						  if (faceProperties[FaceProperty_Engaged] == DetectionResult_Yes)
+						  {
+							  printf("I'M ENGAGED DUMBASS!!!\n");
+						  }*/
+					  }
+				  }
+			  }
+
+			  SafeRelease(pFaceFrameResult);
+		  }
+		  else
+		  {
+			  // face tracking is not valid - attempt to fix the issue
+			  // a valid body is required to perform this step
+			  if (bHaveBodyData)
+			  {
+				  // check if the corresponding body is tracked 
+				  // if this is true then update the face frame source to track this body
+				  IBody* pBody = m_bodies[iFace];
+				  if (pBody != nullptr)
+				  {
+					  BOOLEAN bTracked = false;
+					  hr = pBody->get_IsTracked(&bTracked);
+
+					  UINT64 bodyTId;
+					  if (SUCCEEDED(hr) && bTracked)
+					  {
+						  // get the tracking ID of this body
+						  hr = pBody->get_TrackingId(&bodyTId);
+						  if (SUCCEEDED(hr))
+						  {
+							  // update the face frame source with the tracking ID
+							  m_faceFrameSources[iFace]->put_TrackingId(bodyTId);
+							  printf("hellloooooooo!!!!!\n");
+						  }
+					  }
+				  }
+			  }
+		  }
+	  }
+
+	  SafeRelease(pFaceFrame);
+  }
+  if (bHaveBodyData)
+  {
+	  for (int i = 0; i < _countof(m_bodies); ++i)
+	  {
+		  SafeRelease(m_bodies[i]);
+	  }
   }
 }
 
@@ -209,6 +350,12 @@ void App::Shutdown()
   delete[] m_colorBuffer;
   SafeRelease(m_colorFrameReader);
   SafeRelease(m_bodyFrameReader);
+  // done with face sources and readers
+  for (int i = 0; i < BODY_COUNT; i++)
+  {
+   SafeRelease(m_faceFrameSources[i]);
+   SafeRelease(m_faceFrameReaders[i]);
+  }
 
   SafeRelease(m_sensor);
 }

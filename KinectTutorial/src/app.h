@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <Kinect.h>
+#include <Kinect.Face.h>
 
 //size of the window
 #define SCRWIDTH 1920
@@ -33,32 +34,34 @@ void SafeRelease(T& ptr) { if(ptr) { ptr->Release(); ptr = nullptr; } }
 class App
 {
 public:
-  void Init();
-  void Tick(float deltaTime);
-  void Shutdown();
+	void Init();
+	void Tick(float deltaTime);
+	void Shutdown();
 
-  void SetPixelBuffer(uint32* pixelBuffer) { m_pixelBuffer = pixelBuffer; }
+	void SetPixelBuffer(uint32* pixelBuffer) { m_pixelBuffer = pixelBuffer; }
 
-  //safe way of plotting a pixel
-  void Plot(int x, int y, uint32 color)
-  {
-    if(x < 0 || x >= SCRWIDTH || y < 0 || y >= SCRHEIGHT)
-      return;
-    m_pixelBuffer[x + y * SCRWIDTH] = color;
-  }
+	//safe way of plotting a pixel
+	void Plot(int x, int y, uint32 color)
+	{
+		if (x < 0 || x >= SCRWIDTH || y < 0 || y >= SCRHEIGHT)
+			return;
+		m_pixelBuffer[x + y * SCRWIDTH] = color;
+	}
 
 private:
 
-  //pointer to buffer that contains pixels that get pushed to the screen
-  //size of this buffer is SCRWIDTH * SCRWIDTH * sizeof(uint32)
-  uint32* m_pixelBuffer = nullptr;
+	//pointer to buffer that contains pixels that get pushed to the screen
+	//size of this buffer is SCRWIDTH * SCRWIDTH * sizeof(uint32)
+	uint32* m_pixelBuffer = nullptr;
 
-  IKinectSensor* m_sensor = nullptr;
-  IColorFrameReader* m_colorFrameReader = nullptr;
-  IBodyFrameReader* m_bodyFrameReader = nullptr;
-  IBody* m_bodies[BODY_COUNT] = { 0 };
-  BOOLEAN handraised = false;
-  BOOLEAN on_off = false;
+	IKinectSensor* m_sensor = nullptr;
+	IColorFrameReader* m_colorFrameReader = nullptr;
+	IBodyFrameReader* m_bodyFrameReader = nullptr;
+	IBody* m_bodies[BODY_COUNT] = { 0 };
+	BOOLEAN handraised = false;
+	BOOLEAN on_off = false;
+	IFaceFrameReader* m_faceFrameReaders[BODY_COUNT] = { 0 };
+	IFaceFrameSource* m_faceFrameSources[BODY_COUNT] = { 0 };
 
   uint32* m_colorBuffer = nullptr;
 
