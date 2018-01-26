@@ -2,7 +2,7 @@
 #include "OscOutboundPacketStream.h"
 #include "UdpSocket.h"
 
-#define ADDRESS "24.189.160.200"
+#define ADDRESS "192.168.0.24"
 #define PORT 7000
 
 #define OUTPUT_BUFFER_SIZE 1024
@@ -92,6 +92,7 @@ void App::Init()
 	   hr = m_faceFrameSources[i]->OpenReader(&m_faceFrameReaders[i]);
 	  }
   }
+  initializeGesture(hr);
 }
 
 void App::Tick(float deltaTime)
@@ -146,6 +147,20 @@ void App::Tick(float deltaTime)
 	  }
 
 	  /*printf("Body tracked!");*/
+	  // check if the corresponding body is tracked 
+	  // if this is true then update the face frame source to track this body
+		 
+	  // get the tracking ID of this body
+	  UINT64 bodyTId;
+	  hr = body->get_TrackingId(&bodyTId);
+	  if (SUCCEEDED(hr))
+	  {
+		  IVisualGestureBuilderFrameSource* gestureFrameSource;
+		  hr = gestureFrameReader[bodyIndex]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
+		  // update the face frame source with the tracking ID
+		  gestureFrameSource->put_TrackingId(bodyTId);
+		  //printf("Prinja the ninja!!!\n");
+	  }
 
 	  PointF leanAmount;
 	  hr = body->get_Lean(&leanAmount);
@@ -205,23 +220,23 @@ void App::Tick(float deltaTime)
 		  HandState rightHandState;
 		  hr = body->get_HandLeftState(&leftHandState);
 		  hr = body->get_HandRightState(&rightHandState);
-		  /*if (SUCCEEDED(hr)) {
+		  if (SUCCEEDED(hr)) {
 			  if (leftHandState == HandState_Closed || rightHandState == HandState_Closed) {
 				  std::cout << "CLOSED HAND\n";
 			  }
 			  else if (leftHandState == HandState_Open || rightHandState == HandState_Open) {
 				  std::cout << "OPEN HAND\n";
 			  }
-			  else if (leftHandState == HandState_Lasso || rightHandState == HandState_Lasso) {
-				  std::cout << "PEW PEW HANDS\n";
-			  }
-			  else if (leftHandState == HandState_NotTracked || rightHandState == HandState_NotTracked) {
-				  std::cout << "HAND IS NOT TRACKED\n";
-			  }
-			  else if (leftHandState == HandState_Unknown || rightHandState == HandState_Unknown) {
-				  std::cout << "HANDS STATE IS UNKNOWN\n";
-			  }
-		  }*/
+			  //else if (leftHandState == HandState_Lasso || rightHandState == HandState_Lasso) {
+				 // std::cout << "PEW PEW HANDS\n";
+			  //}
+			  //else if (leftHandState == HandState_NotTracked || rightHandState == HandState_NotTracked) {
+				 // std::cout << "HAND IS NOT TRACKED\n";
+			  //}
+			  //else if (leftHandState == HandState_Unknown || rightHandState == HandState_Unknown) {
+				 // std::cout << "HANDS STATE IS UNKNOWN\n";
+			  //}
+		  }
 	  }
   }
   for (int iFace = 0; iFace < BODY_COUNT; ++iFace)
@@ -263,7 +278,7 @@ void App::Tick(float deltaTime)
 					  hr = pFaceFrameResult->GetFaceProperties(FaceProperty::FaceProperty_Count, faceProperties);
 					  if (SUCCEEDED(hr))
 					  {
-						  if (faceProperties[FaceProperty_MouthOpen] == DetectionResult_Yes)
+						  /*if (faceProperties[FaceProperty_MouthOpen] == DetectionResult_Yes)
 						  {
 							  printf("MOUTH'S OPEN BITCH\n");
 						  }
@@ -274,7 +289,7 @@ void App::Tick(float deltaTime)
 						  if (faceProperties[FaceProperty_RightEyeClosed] == DetectionResult_Yes)
 						  {
 							  printf("RIGHT EYE CLOSED BASTARD!!!\n");
-						  }
+						  }*/
 						 /* if (faceProperties[FaceProperty_Happy] == DetectionResult_Yes)
 						  {
 							  printf("I'M HAPPY YOU ASSHOLE!!!\n");
@@ -334,6 +349,7 @@ void App::Tick(float deltaTime)
 
 	  SafeRelease(pFaceFrame);
   }
+  updateGestureFrame(hr);
   if (bHaveBodyData)
   {
 	  for (int i = 0; i < _countof(m_bodies); ++i)
@@ -341,6 +357,190 @@ void App::Tick(float deltaTime)
 		  SafeRelease(m_bodies[i]);
 	  }
   }
+}
+
+void App::initializeGesture(HRESULT hr)
+{
+	for (int count = 0; count < BODY_COUNT; count++) {
+		// Gesture Frame Source
+		IVisualGestureBuilderFrameSource* gestureFrameSource;
+		hr = CreateVisualGestureBuilderFrameSource(m_sensor, 0, &gestureFrameSource);
+		if (FAILED(hr))
+		{
+			printf("Gesture builder frame source NOT CREATED!!\n");
+			return;
+		}
+
+		// Gesture Frame Reader
+		hr = gestureFrameSource->OpenReader(&gestureFrameReader[count]);
+		if (FAILED(hr))
+		{
+			printf("Gesture frame source read/open failed!!!\n");
+			return;
+		}
+	}
+
+	// (*.gbd)Gesture Database
+	IVisualGestureBuilderDatabase* gestureDatabase;
+	hr = CreateVisualGestureBuilderDatabaseInstanceFromFile(L"Database/headnod_arrow.gbd", &gestureDatabase);
+	if (FAILED(hr))
+	{
+		printf("Failed to create gesture builder database!!\n");
+		return;
+	}
+
+	// Gesture Database Gesture
+	UINT gestureCount;
+	hr = gestureDatabase->get_AvailableGesturesCount(&gestureCount);
+	if (FAILED(hr))
+	{
+		printf("Failed to get gesture count!!!!\n");
+		return;
+	}
+
+	// Gesture
+	gestures.resize(gestureCount);
+	hr = gestureDatabase->get_AvailableGestures(gestureCount, &gestures[0]);
+	if (FAILED(hr))
+	{
+		printf("Failed to get available gestures!!\n");
+		return;
+	}
+	for (int count = 0; count < BODY_COUNT; count++) {
+		// Gesture
+		IVisualGestureBuilderFrameSource* gestureFrameSource;
+		hr = gestureFrameReader[count]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
+		if (FAILED (hr))
+		{
+			printf("Failed to get frame source from reader dawg!!!\n");
+			return;
+		}
+
+		hr = gestureFrameSource->AddGestures(gestureCount, &gestures[0].p);
+		if (FAILED(hr))
+		{
+			printf("Gestures were failed to be added in backwards english!!!\n");
+			/*printf("%x\n", hr);*/
+			std::cout << std::hex << hr << std::endl;
+			return;
+		}
+
+		// Gesture
+		for (IGesture* g : gestures) {
+			hr = gestureFrameSource->SetIsEnabled(g, TRUE);
+			if (FAILED(hr))
+			{
+				printf("Our gesture's not working, party's up!!!\n");
+				return;
+			}
+			else 
+			{
+				printf("Oh hell yyyyeaaahhhwwwhhhh!!!!\n");
+			}
+		}
+	}
+}
+
+void App::updateGestureFrame(HRESULT hr)
+{
+	//printf("We're in updateGestureFrame guyssssss!!!!\n");
+	for (int count = 0; count < BODY_COUNT; count++) {
+		// Gesture Frame
+		CComPtr<IVisualGestureBuilderFrame> gestureFrame;
+		hr = gestureFrameReader[count]->CalculateAndAcquireLatestFrame(&gestureFrame);
+		if (FAILED(hr)) {
+			continue;
+		}
+		//printf("It didn't fail or something\n");
+
+		// Tracking ID
+		BOOLEAN tracked;
+		hr = gestureFrame->get_IsTrackingIdValid(&tracked);
+		if (FAILED(hr))
+		{
+			printf("Failed so fuck you\n");
+		}
+		if (!tracked) {
+			continue;
+		}
+
+		// Gesture
+		for (const CComPtr<IGesture> g : gestures) {
+			result(gestureFrame, g, count);
+		}
+	}
+}
+
+void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count)
+{
+	// Gesture (Discrete or Continuous)
+	GestureType gestureType;
+	HRESULT hr = gesture->get_GestureType(&gestureType);
+	if (FAILED(hr))
+	{
+		printf("and that's the bottom line cause tone cold said so");
+		return;
+	}
+	switch (gestureType) {
+	case GestureType::GestureType_Discrete:
+	{
+		// Discrete Gesture
+		CComPtr<IDiscreteGestureResult> gestureResult;
+		hr = gestureFrame->get_DiscreteGestureResult(gesture, &gestureResult);
+		if (FAILED(hr))
+		{
+			printf("Hernandez is failure and we could not get discrete structure!!!!!\n");
+			return;
+		}
+
+		BOOLEAN detected;
+		hr = gestureResult->get_Detected(&detected);
+		if (FAILED(hr))
+		{
+			printf("WE DIDN'T GOT A FUCKING GESTURE MOTHERFUCKER!!!!\n");
+			return;
+		}
+		if (!detected) {
+			break;
+		}
+
+		float confidence;
+		hr = gestureResult->get_Confidence(&confidence);
+		if (FAILED(hr))
+		{
+			printf("My name is Nishad\n");
+			return;
+		}
+		std::wstring buffer(BUFSIZ, L'\0');
+		hr = gesture->get_Name(BUFSIZ, &buffer[0]);
+		if (SUCCEEDED(hr))
+		{
+			const std::wstring temp = trim(&buffer[0]);
+			const std::string name(temp.begin(), temp.end());
+			//printf("%s", name.c_str());
+			printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
+		}
+		/*std::string discrete = gesture2string(gesture) + " : Detected (" + std::to_string(confidence) + ")";*/
+		break;
+	}
+	case GestureType::GestureType_Continuous:
+	{
+		//// Continuous Gesture
+		//CComPtr<IContinuousGestureResult> gestureResult;
+		//ERROR_CHECK(gestureFrame->get_ContinuousGestureResult(gesture, &gestureResult));
+
+		//float progress;
+		//ERROR_CHECK(gestureResult->get_Progress(&progress));
+
+		//std::string continuous = gesture2string(gesture) + " : Progress " + std::to_string(progress);
+		//cv::putText(colorImage, continuous, cv::Point(50, 50 + offset), font, 1.0f, colors[count], 2, CV_AA);
+		//offset += 30;
+		printf("Continuous gesture chootian!!!\n");
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 void App::Shutdown()

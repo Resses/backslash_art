@@ -12,6 +12,8 @@
 
 #include <Kinect.h>
 #include <Kinect.Face.h>
+#include <Kinect.VisualGestureBuilder.h>
+#include <atlbase.h>
 
 //size of the window
 #define SCRWIDTH 1920
@@ -36,6 +38,9 @@ class App
 public:
 	void Init();
 	void Tick(float deltaTime);
+	void initializeGesture(HRESULT hr);
+	void updateGestureFrame(HRESULT hr);
+	void result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count);
 	void Shutdown();
 
 	void SetPixelBuffer(uint32* pixelBuffer) { m_pixelBuffer = pixelBuffer; }
@@ -46,6 +51,15 @@ public:
 		if (x < 0 || x >= SCRWIDTH || y < 0 || y >= SCRHEIGHT)
 			return;
 		m_pixelBuffer[x + y * SCRWIDTH] = color;
+	}
+
+	inline std::wstring trim(const std::wstring& str)
+	{
+		const std::wstring::size_type last = str.find_last_not_of(L" ");
+		if (last == std::wstring::npos) {
+			throw std::runtime_error("failed ");
+		}
+		return str.substr(0, last + 1);
 	}
 
 private:
@@ -62,7 +76,9 @@ private:
 	BOOLEAN on_off = false;
 	IFaceFrameReader* m_faceFrameReaders[BODY_COUNT] = { 0 };
 	IFaceFrameSource* m_faceFrameSources[BODY_COUNT] = { 0 };
+	IVisualGestureBuilderFrameReader* gestureFrameReader[BODY_COUNT] = { 0 };
+	std::vector<CComPtr<IGesture>> gestures;
 
-  uint32* m_colorBuffer = nullptr;
+	uint32* m_colorBuffer = nullptr;
 
 };

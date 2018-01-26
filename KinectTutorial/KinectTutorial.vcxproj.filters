@@ -27,4 +27,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\arrow.gbd" />
+    <None Include="Database\arrow.gbd" />
+  </ItemGroup>
 </Project>
