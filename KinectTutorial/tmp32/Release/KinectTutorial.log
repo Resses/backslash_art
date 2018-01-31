@@ -2,11 +2,14 @@
 src\app.cpp(98): warning C4100: 'deltaTime': unreferenced formal parameter
 src\app.cpp(171): warning C4189: 'y': local variable is initialized but not referenced
 src\app.cpp(170): warning C4189: 'x': local variable is initialized but not referenced
-src\app.cpp(474): warning C4100: 'count': unreferenced formal parameter
+src\app.cpp(514): warning C4018: '<': signed/unsigned mismatch
+src\app.cpp(580): warning C4456: declaration of 'buffer' hides previous local declaration
+  src\app.cpp(565): note: see declaration of 'buffer'
+src\app.cpp(524): warning C4100: 'count': unreferenced formal parameter
   Generating code
-  5 of 460 functions ( 1.1%) were compiled, the rest were copied from previous compilation.
+  2 of 540 functions ( 0.4%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    3 functions had inline decision re-evaluated but remain unchanged
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   KinectTutorial.vcxproj -> C:\Users\shang\Documents\projects\KinectTutorialFinished\KinectTutorial\bin32\KinectTutorial.exe
   KinectTutorial.vcxproj -> bin32\KinectTutorial.pdb (Full PDB)

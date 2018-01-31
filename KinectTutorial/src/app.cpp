@@ -2,7 +2,7 @@
 #include "OscOutboundPacketStream.h"
 #include "UdpSocket.h"
 
-#define ADDRESS "192.168.0.24"
+#define ADDRESS "68.198.204.70"
 #define PORT 7000
 
 #define OUTPUT_BUFFER_SIZE 1024
@@ -175,7 +175,7 @@ void App::Tick(float deltaTime)
 
 	  if (SUCCEEDED(hr) && is_lean_tracked == TrackingState_Tracked)
 	  {
-		 /* printf("X lean amt is %f and Y lean amt is %f", x, y);*/
+		  //printf("X lean amt is %f and Y lean amt is %f", x, y);
 	  }
 
 	  //If we're here the body is tracked so lets get the joint properties for this skeleton
@@ -223,19 +223,63 @@ void App::Tick(float deltaTime)
 		  if (SUCCEEDED(hr)) {
 			  if (leftHandState == HandState_Closed || rightHandState == HandState_Closed) {
 				  std::cout << "CLOSED HAND\n";
+
+				  hand_open = false;
+
+				  if (hand_closed == false) {
+					  hand_closed = true;
+					  hand_switch = !hand_switch;
+
+					  UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+
+					  char buffer[OUTPUT_BUFFER_SIZE];
+					  osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+
+					  p << osc::BeginBundleImmediate
+						  << osc::BeginMessage("/hand_state")
+						  << hand_switch << osc::EndMessage
+						  << osc::EndBundle;
+
+					  transmitSocket.Send(p.Data(), p.Size());
+				  }
 			  }
+			  /*else if (hand_closed == true && leftHandState != HandState_Unknown && rightHandState != HandState_Unknown) {
+				  hand_closed = false;
+			  }*/
 			  else if (leftHandState == HandState_Open || rightHandState == HandState_Open) {
 				  std::cout << "OPEN HAND\n";
+
+				  hand_closed = false;
+				  
+				  if (hand_open == false) {
+					  hand_open = true;
+					  hand_switch = !hand_switch;
+
+					  UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+
+					  char buffer[OUTPUT_BUFFER_SIZE];
+					  osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+
+					  p << osc::BeginBundleImmediate
+						  << osc::BeginMessage("/hand_state")
+						  << hand_switch << osc::EndMessage
+						  << osc::EndBundle;
+
+					  transmitSocket.Send(p.Data(), p.Size());
+				  }
 			  }
-			  //else if (leftHandState == HandState_Lasso || rightHandState == HandState_Lasso) {
-				 // std::cout << "PEW PEW HANDS\n";
-			  //}
-			  //else if (leftHandState == HandState_NotTracked || rightHandState == HandState_NotTracked) {
-				 // std::cout << "HAND IS NOT TRACKED\n";
-			  //}
-			  //else if (leftHandState == HandState_Unknown || rightHandState == HandState_Unknown) {
-				 // std::cout << "HANDS STATE IS UNKNOWN\n";
-			  //}
+			  /*else if (hand_open == true && leftHandState != HandState_Unknown && rightHandState != HandState_Unknown) {
+				  hand_open = false;
+			  }*/
+			  else if (leftHandState == HandState_Lasso || rightHandState == HandState_Lasso) {
+				  std::cout << "PEW PEW HANDS\n";
+			  }
+			  else if (leftHandState == HandState_NotTracked || rightHandState == HandState_NotTracked) {
+				  std::cout << "HAND IS NOT TRACKED\n";
+			  }
+			  else if (leftHandState == HandState_Unknown || rightHandState == HandState_Unknown) {
+				  std::cout << "HANDS STATE IS UNKNOWN\n";
+			  }
 		  }
 	  }
   }
@@ -382,7 +426,7 @@ void App::initializeGesture(HRESULT hr)
 
 	// (*.gbd)Gesture Database
 	IVisualGestureBuilderDatabase* gestureDatabase;
-	hr = CreateVisualGestureBuilderDatabaseInstanceFromFile(L"Database/headnod_arrow.gbd", &gestureDatabase);
+	hr = CreateVisualGestureBuilderDatabaseInstanceFromFile(L"Database/gestures.gbd", &gestureDatabase);
 	if (FAILED(hr))
 	{
 		printf("Failed to create gesture builder database!!\n");
@@ -400,6 +444,8 @@ void App::initializeGesture(HRESULT hr)
 
 	// Gesture
 	gestures.resize(gestureCount);
+	bool_gestures.resize(gestureCount);
+	gestures_switch.resize(gestureCount);
 	hr = gestureDatabase->get_AvailableGestures(gestureCount, &gestures[0]);
 	if (FAILED(hr))
 	{
@@ -465,13 +511,17 @@ void App::updateGestureFrame(HRESULT hr)
 		}
 
 		// Gesture
-		for (const CComPtr<IGesture> g : gestures) {
-			result(gestureFrame, g, count);
+		for (int i = 0; i < gestures.size(); i++) {
+			const CComPtr<IGesture> g = gestures[i];
+			result(gestureFrame, g, count, i);
 		}
+		/*for (const CComPtr<IGesture> g : gestures) {
+			result(gestureFrame, g, count);
+		}*/
 	}
 }
 
-void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count)
+void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count, int i)
 {
 	// Gesture (Discrete or Continuous)
 	GestureType gestureType;
@@ -501,6 +551,7 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 			return;
 		}
 		if (!detected) {
+			bool_gestures[i] = false;
 			break;
 		}
 
@@ -518,7 +569,25 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 			const std::wstring temp = trim(&buffer[0]);
 			const std::string name(temp.begin(), temp.end());
 			//printf("%s", name.c_str());
-			printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
+			if (confidence > 0.8 && bool_gestures[i] == false) {
+				bool_gestures[i] = true;
+				gestures_switch[i] = !gestures_switch[i];
+				
+				printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
+
+				UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+
+				char buffer[OUTPUT_BUFFER_SIZE];
+				osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+
+				std::string messagename = "/" + name;
+				p << osc::BeginBundleImmediate
+					<< osc::BeginMessage(messagename.c_str())
+					<< gestures_switch[i] << osc::EndMessage
+					<< osc::EndBundle;
+
+				transmitSocket.Send(p.Data(), p.Size());
+			}
 		}
 		/*std::string discrete = gesture2string(gesture) + " : Detected (" + std::to_string(confidence) + ")";*/
 		break;

@@ -40,7 +40,7 @@ public:
 	void Tick(float deltaTime);
 	void initializeGesture(HRESULT hr);
 	void updateGestureFrame(HRESULT hr);
-	void result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count);
+	void result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count, int i);
 	void Shutdown();
 
 	void SetPixelBuffer(uint32* pixelBuffer) { m_pixelBuffer = pixelBuffer; }
@@ -74,10 +74,15 @@ private:
 	IBody* m_bodies[BODY_COUNT] = { 0 };
 	BOOLEAN handraised = false;
 	BOOLEAN on_off = false;
+	BOOLEAN hand_closed = false;
+	BOOLEAN hand_open = false;
+	BOOLEAN hand_switch = false;
 	IFaceFrameReader* m_faceFrameReaders[BODY_COUNT] = { 0 };
 	IFaceFrameSource* m_faceFrameSources[BODY_COUNT] = { 0 };
 	IVisualGestureBuilderFrameReader* gestureFrameReader[BODY_COUNT] = { 0 };
 	std::vector<CComPtr<IGesture>> gestures;
+	std::vector<BOOLEAN> bool_gestures;
+	std::vector<BOOLEAN> gestures_switch;
 
 	uint32* m_colorBuffer = nullptr;
 
