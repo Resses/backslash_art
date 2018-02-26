@@ -9,11 +9,14 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <string>
 
 #include <Kinect.h>
 #include <Kinect.Face.h>
 #include <Kinect.VisualGestureBuilder.h>
 #include <atlbase.h>
+
+#include <time.h>
 
 //size of the window
 #define SCRWIDTH 1920
@@ -77,13 +80,17 @@ private:
 	BOOLEAN hand_closed = false;
 	BOOLEAN hand_open = false;
 	BOOLEAN hand_switch = false;
+	bool lean[4] = { 0 };
 	IFaceFrameReader* m_faceFrameReaders[BODY_COUNT] = { 0 };
 	IFaceFrameSource* m_faceFrameSources[BODY_COUNT] = { 0 };
 	IVisualGestureBuilderFrameReader* gestureFrameReader[BODY_COUNT] = { 0 };
 	std::vector<CComPtr<IGesture>> gestures;
 	std::vector<BOOLEAN> bool_gestures;
-	std::vector<BOOLEAN> gestures_switch;
+	//std::vector<BOOLEAN> gestures_switch;
 
 	uint32* m_colorBuffer = nullptr;
+
+	double seconds[4] = { 0 };
+	double seconds_for_push[4] = { 0 };
 
 };
