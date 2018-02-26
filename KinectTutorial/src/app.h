@@ -42,7 +42,11 @@ public:
 	void Init();
 	void Tick(float deltaTime);
 	void initializeGesture(HRESULT hr);
-	void updateGestureFrame(HRESULT hr);
+	void orderPeople(HRESULT hr);
+	void updateGestureFrame(HRESULT hr, int count);
+	void updateLean(HRESULT hr, IBody* body, int bodyIndex);
+	void updateArmRaise(HRESULT hr, IBody* body, int bodyIndex);
+	void updateHandState(HRESULT hr, IBody* body, int bodyIndex);
 	void result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const CComPtr<IGesture>& gesture, const int count, int i);
 	void Shutdown();
 
@@ -85,12 +89,17 @@ private:
 	IFaceFrameSource* m_faceFrameSources[BODY_COUNT] = { 0 };
 	IVisualGestureBuilderFrameReader* gestureFrameReader[BODY_COUNT] = { 0 };
 	std::vector<CComPtr<IGesture>> gestures;
-	std::vector<BOOLEAN> bool_gestures;
-	//std::vector<BOOLEAN> gestures_switch;
-
+	std::vector<BOOLEAN> bool_gestures[BODY_COUNT];
+	bool summon[4] = { 0 }; 
+	int summoncounter[4] = { 0 };
+	int hipscounter[BODY_COUNT] = { 0 };
+	//forward left = 0, back left = 1, forward right = 2, back right = 3
+	//speakers:
+	//Forward left = 1
+	// forward right = 2
+	// back right = 3
+	// back left = 4
 	uint32* m_colorBuffer = nullptr;
 
-	double seconds[4] = { 0 };
-	double seconds_for_push[4] = { 0 };
-
+	
 };
