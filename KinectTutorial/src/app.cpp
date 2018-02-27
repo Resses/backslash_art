@@ -2,7 +2,7 @@
 #include "OscOutboundPacketStream.h"
 #include "UdpSocket.h"
 
-#define ADDRESS "98.113.38.112"
+#define ADDRESS "68.198.204.70"
 #define PORT 7000
 
 #define OUTPUT_BUFFER_SIZE 1024
@@ -164,7 +164,7 @@ void App::Tick(float deltaTime)
 	  }
 
 	  
-	  if (bodyIndex != 1) {
+	  if (bodyIndex != 0) {
 		  updateLean(hr, body, bodyIndex);
 		  if (!lean[0] && !lean[1] && !lean[2] && !lean[3]) {
 			  updateGestureFrame(hr, bodyIndex);
@@ -324,6 +324,50 @@ void App::orderPeople(HRESULT hr)
 	}
 }
 
+void App::sendMessage(std::string message_name, int message_value, int body_index, std::string print_message)
+{
+	printf("%s \n", print_message);
+	UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+	char buffer[OUTPUT_BUFFER_SIZE];
+	osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+	double current_seconds = GetCurrentSeconds();
+	if (timeOfLastGesture[body_index] != 0) {
+		double time_difference = current_seconds - timeOfLastGesture[body_index];
+		if (time_difference < 3){
+			return;
+		}
+	}
+	p << osc::BeginBundleImmediate
+		<< osc::BeginMessage(message_name.c_str())
+		<< message_value << osc::EndMessage
+		<< osc::EndBundle;
+	transmitSocket.Send(p.Data(), p.Size());
+
+	timeOfLastGesture[body_index] = current_seconds;
+
+}
+
+void App::sendMessage(std::string message_name, int message_value, int body_index)
+{
+	UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
+	char buffer[OUTPUT_BUFFER_SIZE];
+	osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+	double current_seconds = GetCurrentSeconds();
+	if (timeOfLastGesture[body_index] != 0) {
+		double time_difference = current_seconds - timeOfLastGesture[body_index];
+		if (time_difference < 5) {
+			return;
+		}
+	}
+	p << osc::BeginBundleImmediate
+		<< osc::BeginMessage(message_name.c_str())
+		<< message_value << osc::EndMessage
+		<< osc::EndBundle;
+	transmitSocket.Send(p.Data(), p.Size());
+
+	timeOfLastGesture[body_index] = current_seconds;
+}
+
 void App::updateGestureFrame(HRESULT hr, int count)
 {
 	// Gesture Frame
@@ -370,54 +414,53 @@ void App::updateLean(HRESULT hr, IBody* body, int bodyIndex)
 	if (SUCCEEDED(hr) && is_lean_tracked == TrackingState_Tracked)
 	{
 		// printf("x lean is %f and Y lean amt is %f \n", x, y);
-		bool send_msg = false;
+		//bool send_msg = false;
+		std::string messagename = "/person" + std::to_string(bodyIndex + 1);
 		if (x > lean_threshold && lean[0] == false) {
 			lean[0] = true;
-			send_msg = true;
-			printf("X lean amt is %f \n", x);
+			std::string print_message = "X lean amt is " + std::to_string(x);
+			sendMessage(messagename, 1, bodyIndex, print_message);
+			//send_msg = true;
+			//printf("X lean amt is %f \n", x);
 		}
 		else if (x < unlean_threshold) {
 			lean[0] = false;
 		}
 		if (x < -lean_threshold && lean[1] == false) {
 			lean[1] = true;
-			send_msg = true;
-			printf("X lean amt is %f \n", x);
+			std::string print_message = "X lean amt is " + std::to_string(x);
+			sendMessage(messagename, 1, bodyIndex, print_message);
+			//send_msg = true;
+			//printf("X lean amt is %f \n", x);
 		}
 		else if (x > -unlean_threshold) {
 			lean[1] = false;
 		}
 		if (y > lean_threshold && lean[2] == false) {
 			lean[2] = true;
-			send_msg = true;
-			printf("Y lean amt is %f \n", y);
+			std::string print_message = "Y lean amt is " + std::to_string(y);
+			sendMessage(messagename, 1, bodyIndex, print_message);
+			//send_msg = true;
+			//printf("Y lean amt is %f \n", y);
 		}
 		else if (y < unlean_threshold) {
 			lean[2] = false;
 		}
 		if (y < -lean_threshold && lean[3] == false) {
 			lean[3] = true;
-			send_msg = true;
-			printf("Y lean amt is %f \n", y);
+			std::string print_message = "Y lean amt is " + std::to_string(y);
+			sendMessage(messagename, 1, bodyIndex, print_message);
+			//send_msg = true;
+			//printf("Y lean amt is %f \n", y);
 		}
 		else if (x > -unlean_threshold) {
 			lean[3] = false;
 		}
 
-		if (send_msg == true) {
-			UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
-
-			char buffer[OUTPUT_BUFFER_SIZE];
-			osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
-
-			std::string messagename = "/person" + std::to_string(bodyIndex + 1);
-			p << osc::BeginBundleImmediate
-				<< osc::BeginMessage(messagename.c_str())
-				<< 1 << osc::EndMessage
-				<< osc::EndBundle;
-
-			transmitSocket.Send(p.Data(), p.Size());
-		}
+		//if (send_msg == true) {
+		//	std::string messagename = "/person" + std::to_string(bodyIndex + 1);
+		//	sendMessage(messagename, 1, bodyIndex);
+		//}
 	}
 }
 
@@ -438,17 +481,9 @@ void App::updateArmRaise(HRESULT hr, IBody * body, int bodyIndex)
 			if (!handraised) {
 				handraised = true;
 				on_off = !on_off;
-				std::cout << "HAND UP!!\n";
-
-				UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
-				char buffer[OUTPUT_BUFFER_SIZE];
-				osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
+				std::string print_msg = "Hand up! " + std::to_string(leftHandPos.Y);
 				std::string messagename = "/person" + std::to_string(bodyIndex + 1);
-				p << osc::BeginBundleImmediate
-					<< osc::BeginMessage(messagename.c_str())
-					<< 1 << osc::EndMessage
-					<< osc::EndBundle;
-				transmitSocket.Send(p.Data(), p.Size());
+				sendMessage(messagename, 1, bodyIndex, print_msg);
 			}
 
 		}
@@ -473,20 +508,9 @@ void App::updateHandState(HRESULT hr, IBody * body, int bodyIndex)
 			if (hand_closed == false) {
 				hand_closed = true;
 				std::cout << "CLOSED HAND!\n";
-				hand_switch = !hand_switch;
-
-				UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
-
-				char buffer[OUTPUT_BUFFER_SIZE];
-				osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
-
+				//std::string print_message = "CLOSED HAND " + std::to_string(bodyIndex);
 				std::string messagename = "/person" + std::to_string(bodyIndex + 1);
-				p << osc::BeginBundleImmediate
-					<< osc::BeginMessage(messagename.c_str())
-					<< 1 << osc::EndMessage
-					<< osc::EndBundle;
-
-				transmitSocket.Send(p.Data(), p.Size());
+				sendMessage(messagename, 1, bodyIndex);
 			}
 		}
 		/*else if (hand_closed == true && leftHandState != HandState_Unknown && rightHandState != HandState_Unknown) {
@@ -499,21 +523,9 @@ void App::updateHandState(HRESULT hr, IBody * body, int bodyIndex)
 			if (hand_open == false) {
 				hand_open = true;
 				std::cout << "OPEN HAND!\n";
-				hand_switch = !hand_switch;
-
-
-				UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
-
-				char buffer[OUTPUT_BUFFER_SIZE];
-				osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
-
+				//std::string print_message = "OPEN HAND!! " + std::to_string(bodyIndex );
 				std::string messagename = "/person" + std::to_string(bodyIndex + 1);
-				p << osc::BeginBundleImmediate
-					<< osc::BeginMessage(messagename.c_str())
-					<< 1 << osc::EndMessage
-					<< osc::EndBundle;
-
-				transmitSocket.Send(p.Data(), p.Size());
+				sendMessage(messagename, 1, bodyIndex);
 			}
 		}
 	}
@@ -549,7 +561,8 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 			return;
 		}
 		if (!detected) {
-			std::wstring buffer(BUFSIZ, L'\0');
+			bool_gestures[count][i] = false;
+			/*std::wstring buffer(BUFSIZ, L'\0');
 			hr = gesture->get_Name(BUFSIZ, &buffer[0]);
 			if (SUCCEEDED(hr))
 			{
@@ -567,7 +580,7 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 				else {
 					bool_gestures[count][i] = false;
 				}
-			}
+			}*/
 			break;
 		}
 
@@ -585,46 +598,41 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 			const std::wstring temp = trim(&buffer[0]);
 			const std::string name(temp.begin(), temp.end());
 			//printf("%s", name.c_str());
-			bool send_person = false;
-			if (count == 1) { //first person
+			//bool send_person = false;
+			std::string messagename = "/person" + std::to_string(count + 1);
+			std::string print_message = name + " detected with " + std::to_string(confidence) + " confidence!!!";
+			if (count == 0) { //first person
 				if (name == "Hips") {
 					if (confidence >= 0.7 && bool_gestures[count][i] == false) {
 						bool_gestures[count][i] = true;
-						send_person = true;
-						printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
+						sendMessage(messagename, 1, count, print_message);
+						//send_person = true;
+						//printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
 					}
 				}
 			}
 			else {
 				if (name == "Hips") {
 					if (confidence >= 0.7 && bool_gestures[count][i] == false) {
-						send_person = true;
+						//send_person = true;
 						bool_gestures[count][i] = true;
-						printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
+						sendMessage(messagename, 1, count, print_message);
+						//printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
 					}
 				}
 				else if (name == "Stomp_Left" || name == "Stomp_Right") {
 					if (confidence >= 0.25 && bool_gestures[count][i] == false) {
-						send_person = true;
-						bool_gestures[count][i] = true;
-						printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
+						//send_person = true;
+						bool_gestures[count][i] = true; 
+						sendMessage(messagename, 1, count, print_message);
+						//printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
 					}
 				}
 			} //end else (more than one person)
-			if (send_person) {
-				UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
-
-				char buffer[OUTPUT_BUFFER_SIZE];
-				osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
-
-				std::string messagename = "/person" + std::to_string(count + 1);
-				p << osc::BeginBundleImmediate
-				<< osc::BeginMessage(messagename.c_str())
-				<< 1 << osc::EndMessage
-				<< osc::EndBundle;
-
-				transmitSocket.Send(p.Data(), p.Size());
-			}
+			//if (send_person) {
+				//std::string messagename = "/person" + std::to_string(count + 1);
+				//sendMessage(messagename, 1, count);
+			//}
 		} // end if succeeded...
 		break;
 	} //end discrete
@@ -653,17 +661,21 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 
 			std::string message_name = "";
 			int message_value = 0;
+			std::string print_message = "";
+			bool send_gesture = false;
 
 			double forward_threshold = 0.8;
 			double back_threshold = 0.2;
-			bool send_gesture = false;
-			if (count == 1) {
+			
+			
+			if (count == 0) {
 				if (name == "SummoningProgress_Left") {
 					//printf("left %f \n", progress);
 					if (progress >= forward_threshold && summon[0] == false) {
-						printf("summon forward left\n");
+						//printf("summon forward left\n");
 						message_name = "/whitney";
 						message_value = 1;
+						print_message = "summon forward left " + std::to_string(count + 1);
 						send_gesture = true;
 						summon[0] = true;
 					}
@@ -677,10 +689,11 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 						}
 					}
 					if (progress <= back_threshold && progress != 0.0 && summon[1] == false) {
-						printf("summon back left\n");
+						//printf("summon back left\n");
 						message_name = "/whitney";
 						message_value = 4;
 						send_gesture = true;
+						print_message = "summon back left " + std::to_string(count + 1);
 						summon[1] = true;
 					}
 					else if (progress >= 0.4 && summon[1] == true) {
@@ -697,10 +710,11 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 					//printf("right %f \n", progress);
 
 					if (progress >= forward_threshold && summon[2] == false) {
-						printf("summon forward right\n");
+						//printf("summon forward right\n");
 						message_name = "/whitney";
 						message_value = 2;
 						send_gesture = true;
+						print_message = "summon forward right " + std::to_string(count + 1);
 						summon[2] = true;
 					}
 					else if (progress <= 0.6 && progress != 0.0 && summon[2] == true) {
@@ -713,10 +727,11 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 						}
 					}
 					if (progress <= back_threshold && progress != 0.0 && summon[3] == false) {
-						printf("summon back right\n");
+						//printf("summon back right\n");
 						message_name = "/whitney";
 						message_value = 3;
 						send_gesture = true;
+						print_message = "summon back right " + std::to_string(count + 1);
 						summon[3] = true;
 					}
 					else if (progress >= 0.4 && summon[3] == true) {
@@ -731,17 +746,7 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 				}
 
 				if (send_gesture) {
-					UdpTransmitSocket transmitSocket(IpEndpointName(ADDRESS, PORT));
-
-					char buffer[OUTPUT_BUFFER_SIZE];
-					osc::OutboundPacketStream p(buffer, OUTPUT_BUFFER_SIZE);
-
-					p << osc::BeginBundleImmediate
-						<< osc::BeginMessage(message_name.c_str())
-						<< message_value << osc::EndMessage
-						<< osc::EndBundle;
-
-					transmitSocket.Send(p.Data(), p.Size());
+					sendMessage(message_name, message_value, count, print_message);
 				}
 			} //end of count = 0
 		} // end if succeeded...

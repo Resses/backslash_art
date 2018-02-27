@@ -43,6 +43,8 @@ public:
 	void Tick(float deltaTime);
 	void initializeGesture(HRESULT hr);
 	void orderPeople(HRESULT hr);
+	void sendMessage(std::string message_name, int message_value, int body_index, std::string print_message); 
+	void sendMessage(std::string message_name, int message_value, int body_index);
 	void updateGestureFrame(HRESULT hr, int count);
 	void updateLean(HRESULT hr, IBody* body, int bodyIndex);
 	void updateArmRaise(HRESULT hr, IBody* body, int bodyIndex);
@@ -51,7 +53,6 @@ public:
 	void Shutdown();
 
 	void SetPixelBuffer(uint32* pixelBuffer) { m_pixelBuffer = pixelBuffer; }
-
 	//safe way of plotting a pixel
 	void Plot(int x, int y, uint32 color)
 	{
@@ -59,7 +60,6 @@ public:
 			return;
 		m_pixelBuffer[x + y * SCRWIDTH] = color;
 	}
-
 	inline std::wstring trim(const std::wstring& str)
 	{
 		const std::wstring::size_type last = str.find_last_not_of(L" ");
@@ -67,6 +67,18 @@ public:
 			throw std::runtime_error("failed ");
 		}
 		return str.substr(0, last + 1);
+	}
+	double GetCurrentSeconds() {
+		time_t timer;
+		struct tm y2k = { 0 };
+		double seconds;
+
+		y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
+		y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
+
+		time(&timer);  /* get current time; same as: timer = time(NULL)  */
+
+		return difftime(timer, mktime(&y2k));
 	}
 
 private:
@@ -92,7 +104,7 @@ private:
 	std::vector<BOOLEAN> bool_gestures[BODY_COUNT];
 	bool summon[4] = { 0 }; 
 	int summoncounter[4] = { 0 };
-	int hipscounter[BODY_COUNT] = { 0 };
+	//int hipscounter[BODY_COUNT] = { 0 };
 	//forward left = 0, back left = 1, forward right = 2, back right = 3
 	//speakers:
 	//Forward left = 1
@@ -100,6 +112,7 @@ private:
 	// back right = 3
 	// back left = 4
 	uint32* m_colorBuffer = nullptr;
+	double timeOfLastGesture[BODY_COUNT] = { 0 }; 
 
 	
 };
