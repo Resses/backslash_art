@@ -2,12 +2,12 @@
 #include "OscOutboundPacketStream.h"
 #include "UdpSocket.h"
 
-#define ADDRESS "68.198.204.70"
+#define ADDRESS "192.168.0.14"
 #define PORT 7000
 
 #define OUTPUT_BUFFER_SIZE 1024
 
-// define the face frame features required to be computed by this application
+// define the face frame features required to be computed by this sapplication
 static const DWORD c_FaceFrameFeatures =
 FaceFrameFeatures::FaceFrameFeatures_BoundingBoxInColorSpace
 | FaceFrameFeatures::FaceFrameFeatures_PointsInColorSpace
@@ -164,7 +164,7 @@ void App::Tick(float deltaTime)
 	  }
 
 	  
-	  if (bodyIndex != 0) {
+	  if (bodyIndex != 1) {
 		  updateLean(hr, body, bodyIndex);
 		  if (!lean[0] && !lean[1] && !lean[2] && !lean[3]) {
 			  updateGestureFrame(hr, bodyIndex);
@@ -333,7 +333,10 @@ void App::sendMessage(std::string message_name, int message_value, int body_inde
 	double current_seconds = GetCurrentSeconds();
 	if (timeOfLastGesture[body_index] != 0) {
 		double time_difference = current_seconds - timeOfLastGesture[body_index];
-		if (time_difference < 3){
+		if (body_index == 3 && time_difference < 10) {
+			return;
+		}
+		else if (time_difference < 3){
 			return;
 		}
 	}
@@ -355,7 +358,10 @@ void App::sendMessage(std::string message_name, int message_value, int body_inde
 	double current_seconds = GetCurrentSeconds();
 	if (timeOfLastGesture[body_index] != 0) {
 		double time_difference = current_seconds - timeOfLastGesture[body_index];
-		if (time_difference < 5) {
+		if (body_index == 3 && time_difference < 10) {
+			return;
+		}
+		else if (time_difference < 3) {
 			return;
 		}
 	}
@@ -601,9 +607,9 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 			//bool send_person = false;
 			std::string messagename = "/person" + std::to_string(count + 1);
 			std::string print_message = name + " detected with " + std::to_string(confidence) + " confidence!!!";
-			if (count == 0) { //first person
+			if (count == 1) { //first person
 				if (name == "Hips") {
-					if (confidence >= 0.7 && bool_gestures[count][i] == false) {
+					if (confidence >= 0.5 && bool_gestures[count][i] == false) {
 						bool_gestures[count][i] = true;
 						sendMessage(messagename, 1, count, print_message);
 						//send_person = true;
@@ -638,118 +644,120 @@ void App::result(const CComPtr<IVisualGestureBuilderFrame>& gestureFrame, const 
 	} //end discrete
 	case GestureType::GestureType_Continuous:
 	{
-		// Continuous Gesture
-		CComPtr<IContinuousGestureResult> gestureResult;
-		hr = gestureFrame->get_ContinuousGestureResult(gesture, &gestureResult);
-		if (FAILED(hr))
-		{
-			printf("Error: continuous gesture result!!!!!\n");
-			return;
-		}
-		float progress;
-		hr = gestureResult->get_Progress(&progress);
-		if (FAILED(hr)) {
-			printf("Error get progress!!!!!!!!!!! \n");
-		}
+		
+		//// Continuous Gesture
+		//CComPtr<IContinuousGestureResult> gestureResult;
+		//hr = gestureFrame->get_ContinuousGestureResult(gesture, &gestureResult);
+		//if (FAILED(hr))
+		//{
+		//	printf("Error: continuous gesture result!!!!!\n");
+		//	return;
+		//}
+		//float progress;
+		//hr = gestureResult->get_Progress(&progress);
+		//if (FAILED(hr)) {
+		//	printf("Error get progress!!!!!!!!!!! \n");
+		//}
 
-		std::wstring buffer(BUFSIZ, L'\0');
-		hr = gesture->get_Name(BUFSIZ, &buffer[0]);
-		if (SUCCEEDED(hr))
-		{
-			const std::wstring temp = trim(&buffer[0]);
-			const std::string name(temp.begin(), temp.end());
+		//std::wstring buffer(BUFSIZ, L'\0');
+		//hr = gesture->get_Name(BUFSIZ, &buffer[0]);
+		//if (SUCCEEDED(hr))
+		//{
+		//	const std::wstring temp = trim(&buffer[0]);
+		//	const std::string name(temp.begin(), temp.end());
 
-			std::string message_name = "";
-			int message_value = 0;
-			std::string print_message = "";
-			bool send_gesture = false;
+		//	std::string message_name = "";
+		//	int message_value = 0;
+		//	std::string print_message = "";
+		//	bool send_gesture = false;
 
-			double forward_threshold = 0.8;
-			double back_threshold = 0.2;
+		//	double forward_threshold = 0.95;
+		//	double back_threshold = 0.01;
 			
 			
-			if (count == 0) {
-				if (name == "SummoningProgress_Left") {
-					//printf("left %f \n", progress);
-					if (progress >= forward_threshold && summon[0] == false) {
-						//printf("summon forward left\n");
-						message_name = "/whitney";
-						message_value = 1;
-						print_message = "summon forward left " + std::to_string(count + 1);
-						send_gesture = true;
-						summon[0] = true;
-					}
-					else if (progress <= 0.6 && progress != 0.0 && summon[0] == true) {
-						if(summoncounter[0] > 6){
-							summon[0] = false;
-							summoncounter[0] = 0;
-						}
-						else {
-							summoncounter[0]++;
-						}
-					}
-					if (progress <= back_threshold && progress != 0.0 && summon[1] == false) {
-						//printf("summon back left\n");
-						message_name = "/whitney";
-						message_value = 4;
-						send_gesture = true;
-						print_message = "summon back left " + std::to_string(count + 1);
-						summon[1] = true;
-					}
-					else if (progress >= 0.4 && summon[1] == true) {
-						if (summoncounter[1] > 6) {
-							summon[1] = false;
-							summoncounter[1] = 0;
-						}
-						else {
-							summoncounter[1]++;
-						}
-					}
-				}
-				else if (name == "SummoningProgress_Right") {
-					//printf("right %f \n", progress);
+		//	if (count == 1) {
+		//		printf("person1\n");
+		//		if (name == "SummoningProgress_Left") {
+		//			//printf("left %f \n", progress);
+		//			if (progress >= forward_threshold && summon[0] == false) {
+		//				//printf("summon forward left\n");
+		//				message_name = "/whitney";
+		//				message_value = 1;
+		//				print_message = "summon forward left " + std::to_string(count + 1);
+		//				send_gesture = true;
+		//				summon[0] = true;
+		//			}
+		//			else if (progress <= 0.6 && progress != 0.0 && summon[0] == true) {
+		//				if(summoncounter[0] > 6){
+		//					summon[0] = false;
+		//					summoncounter[0] = 0;
+		//				}
+		//				else {
+		//					summoncounter[0]++;
+		//				}
+		//			}
+		//			/*if (progress <= back_threshold && progress != 0.0 && summon[1] == false) {
+		//				//printf("summon back left\n");
+		//				message_name = "/whitney";
+		//				message_value = 4;
+		//				send_gesture = true;
+		//				print_message = "summon back left " + std::to_string(count + 1);
+		//				summon[1] = true;
+		//			}
+		//			else if (progress >= 0.4 && summon[1] == true) {
+		//				if (summoncounter[1] > 6) {
+		//					summon[1] = false;
+		//					summoncounter[1] = 0;
+		//				}
+		//				else {
+		//					summoncounter[1]++;
+		//				}
+		//			}*/
+		//		}
+		//		else if (name == "SummoningProgress_Right") {
+		//			//printf("right %f \n", progress);
 
-					if (progress >= forward_threshold && summon[2] == false) {
-						//printf("summon forward right\n");
-						message_name = "/whitney";
-						message_value = 2;
-						send_gesture = true;
-						print_message = "summon forward right " + std::to_string(count + 1);
-						summon[2] = true;
-					}
-					else if (progress <= 0.6 && progress != 0.0 && summon[2] == true) {
-						if (summoncounter[2] > 6) {
-							summon[2] = false;
-							summoncounter[2] = 0;
-						}
-						else {
-							summoncounter[2]++;
-						}
-					}
-					if (progress <= back_threshold && progress != 0.0 && summon[3] == false) {
-						//printf("summon back right\n");
-						message_name = "/whitney";
-						message_value = 3;
-						send_gesture = true;
-						print_message = "summon back right " + std::to_string(count + 1);
-						summon[3] = true;
-					}
-					else if (progress >= 0.4 && summon[3] == true) {
-						if (summoncounter[3] > 6) {
-							summon[3] = false;
-							summoncounter[3] = 0;
-						}
-						else {
-							summoncounter[3]++;
-						}
-					}
-				}
+		//			if (progress >= forward_threshold && summon[2] == false) {
+		//				//printf("summon forward right\n");
+		//				message_name = "/whitney";
+		//				message_value = 2;
+		//				send_gesture = true;
+		//				print_message = "summon forward right " + std::to_string(count + 1);
+		//				summon[2] = true;
+		//			}
+		//			else if (progress <= 0.6 && progress != 0.0 && summon[2] == true) {
+		//				if (summoncounter[2] > 6) {
+		//					summon[2] = false;
+		//					summoncounter[2] = 0;
+		//				}
+		//				else {
+		//					summoncounter[2]++;
+		//				}
+		//			}
+		//			/*if (progress <= back_threshold && progress != 0.0 && summon[3] == false) {
+		//				//printf("summon back right\n");
+		//				message_name = "/whitney";
+		//				message_value = 3;
+		//				send_gesture = true;
+		//				print_message = "summon back right " + std::to_string(count + 1);
+		//				summon[3] = true;
+		//			}
+		//			else if (progress >= 0.4 && summon[3] == true) {
+		//				if (summoncounter[3] > 6) {
+		//					summon[3] = false;
+		//					summoncounter[3] = 0;
+		//				}
+		//				else {
+		//					summoncounter[3]++;
+		//				}
+		//			}*/
+		//		}
 
-				if (send_gesture) {
-					sendMessage(message_name, message_value, count, print_message);
-				}
-			} //end of count = 0
-		} // end if succeeded...
+		//		if (send_gesture) {
+		//			sendMessage(message_name, message_value, count, print_message);
+		//		}
+		//	} //end of count = 0
+		//} // end if succeeded...
 		break;
 	}
 	default:
