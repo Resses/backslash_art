@@ -1,0 +1,4 @@
+﻿  app.cpp
+c:\users\shang\documents\projects\kinecttutorialfinished\kinecttutorial\src\app.h(13): fatal error C1083: Cannot open include file: 'Kinect.h': No such file or directory
+  main.cpp
+src\main.cpp(4): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory

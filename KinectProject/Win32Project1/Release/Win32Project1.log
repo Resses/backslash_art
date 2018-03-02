@@ -1,0 +1,2 @@
+﻿winmm.lib(WINMM.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in ws2_32.lib(WS2_32.dll); second definition ignored
+  Win32Project1.vcxproj -> C:\Users\shang\Documents\projects\KinectTutorialFinished\Release\Win32Project1.lib
