@@ -67,16 +67,14 @@ void App::initializeGesture(){
 		// Gesture Frame Source
 		IVisualGestureBuilderFrameSource* gestureFrameSource;
 		HRESULT hr = CreateVisualGestureBuilderFrameSource(m_sensor, 0, &gestureFrameSource);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)){
 			printf("Gesture builder frame source NOT CREATED!!\n");
 			return;
 		}
 
 		// Gesture Frame Reader
 		hr = gestureFrameSource->OpenReader(&gestureFrameReader[count]);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)){
 			printf("Gesture frame source read/open failed!!!\n");
 			return;
 		}
@@ -85,8 +83,7 @@ void App::initializeGesture(){
 	// (*.gbd)Gesture Database
 	IVisualGestureBuilderDatabase* gestureDatabase;
 	hr = CreateVisualGestureBuilderDatabaseInstanceFromFile(L"Database/final_gestures4.gbd", &gestureDatabase);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)){
 		printf("Failed to create gesture builder database!!\n");
 		return;
 	}
@@ -94,8 +91,7 @@ void App::initializeGesture(){
 	// Gesture Database Gesture
 	UINT gestureCount;
 	hr = gestureDatabase->get_AvailableGesturesCount(&gestureCount);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)){
 		printf("Failed to get gesture count!\n");
 		return;
 	}
@@ -106,8 +102,7 @@ void App::initializeGesture(){
 		bool_gestures[i].resize(gestureCount);
 
 	hr = gestureDatabase->get_AvailableGestures(gestureCount, &gestures[0]);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)){
 		printf("Failed to get available gestures!\n");
 		return;
 	}
@@ -115,15 +110,13 @@ void App::initializeGesture(){
 		// Gesture
 		IVisualGestureBuilderFrameSource* gestureFrameSource;
 		hr = gestureFrameReader[count]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
-		if (FAILED (hr))
-		{
+		if (FAILED (hr)){
 			printf("Failed to get gesture frame source from reader!\n");
 			return;
 		}
 
 		hr = gestureFrameSource->AddGestures(gestureCount, &gestures[0].p);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)){
 			printf("Gestures failed to be added to source!\n");
 			std::cout << std::hex << hr << std::endl;
 			return;
@@ -132,13 +125,11 @@ void App::initializeGesture(){
 		// Gesture
 		for (IGesture* g : gestures) {
 			hr = gestureFrameSource->SetIsEnabled(g, TRUE);
-			if (FAILED(hr))
-			{
+			if (FAILED(hr)){
 				printf("Our gesture's not working.\n");
 				return;
 			}
-			else 
-			{
+			else {
 				printf("Gesture working!\n");
 			}
 		}
@@ -227,8 +218,7 @@ void App::Tick(float deltaTime) {
 	  }
   }
   if (bHaveBodyData) {
-	  for (int i = 0; i < _countof(m_bodies); ++i)
-	  {
+	  for (int i = 0; i < _countof(m_bodies); ++i) {
 		  SafeRelease(m_bodies[i]);
 	  }
   }
@@ -238,11 +228,9 @@ void App::orderPeople(){
 	HRESULT hr;
 	int i, j;
 	bool swapped;
-	for (i = 0; i < BODY_COUNT - 1; i++)
-	{
+	for (i = 0; i < BODY_COUNT - 1; i++) {
 		swapped = false;
-		for (j = 0; j < BODY_COUNT - i - 1; j++)
-		{
+		for (j = 0; j < BODY_COUNT - i - 1; j++) {
 			int x1 = INT_MAX;
 			int x2 = INT_MAX;
 
@@ -264,8 +252,7 @@ void App::orderPeople(){
 				const CameraSpacePoint &hipPos2 = joints[JointType_HipLeft].Position;
 				x2 = hipPos2.X;
 			}
-			if (x1 > x2)
-			{
+			if (x1 > x2) {
 				IBody *temp = m_bodies[j];
 				m_bodies[j] = m_bodies[j + 1];
 				m_bodies[j + 1] = temp;
@@ -273,17 +260,14 @@ void App::orderPeople(){
 				swapped = true;
 			}
 		}
-
-		if (!swapped)
-			break;
+		if (!swapped) break;
 	}
 }
 
 void App::updateLean(IBody* body, int bodyIndex){
 	PointF leanAmount;
 	HRESULT hr = body->get_Lean(&leanAmount);
-	if (FAILED(hr))
-		return;
+	if (FAILED(hr)) return;
 
 	float x = leanAmount.X;
 	float y = leanAmount.Y;
@@ -293,8 +277,7 @@ void App::updateLean(IBody* body, int bodyIndex){
 	TrackingState is_lean_tracked;
 	hr = body->get_LeanTrackingState(&is_lean_tracked);
 
-	if (SUCCEEDED(hr) && is_lean_tracked == TrackingState_Tracked)
-	{
+	if (SUCCEEDED(hr) && is_lean_tracked == TrackingState_Tracked) {
 		// printf("x lean is %f and Y lean amt is %f \n", x, y);
 		std::string messagename = "/person" + std::to_string(bodyIndex + 1);
 		if (x > lean_threshold && lean[bodyIndex][0] == false) {
@@ -527,5 +510,8 @@ void App::Shutdown(){
   delete[] m_colorBuffer;
   SafeRelease(m_colorFrameReader);
   SafeRelease(m_bodyFrameReader);
+  for (int i = 0; i < BODY_COUNT; ++i){
+	SafeRelease(gestureFrameReader[i]);
+  }
   SafeRelease(m_sensor);
 }
