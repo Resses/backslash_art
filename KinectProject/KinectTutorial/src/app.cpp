@@ -9,57 +9,57 @@
 
 void App::Init(){
 	
-  HRESULT hr;
+	HRESULT hr;
+	
+	//get the kinect sensor
+	hr = GetDefaultKinectSensor(&m_sensor);
+	if(FAILED(hr)){
+		printf("Failed to find the kinect sensor!\n");
+		exit(10);
+	}
+	m_sensor->Open();
+  	
+  	//get color frame source
+	IColorFrameSource* colorFrameSource;
+	hr = m_sensor->get_ColorFrameSource(&colorFrameSource);
+	if(FAILED(hr)){
+		printf("Failed to get color frame source!\n");
+		exit(10);
+	}
 
-  //get the kinect sensor
-  hr = GetDefaultKinectSensor(&m_sensor);
-  if(FAILED(hr)){
-    printf("Failed to find the kinect sensor!\n");
-    exit(10);
-  }
-  m_sensor->Open();
+	//get color frame reader
+	hr = colorFrameSource->OpenReader(&m_colorFrameReader);
+	if(FAILED(hr)){
+		printf("Failed to open color frame reader!\n");
+		exit(10);
+	}
   
- //get color frame source
-  IColorFrameSource* colorFrameSource;
-  hr = m_sensor->get_ColorFrameSource(&colorFrameSource);
-  if(FAILED(hr)){
-    printf("Failed to get color frame source!\n");
-    exit(10);
-  }
+	//release color frame source
+	SafeRelease(colorFrameSource);
 
-  //get color frame reader
-  hr = colorFrameSource->OpenReader(&m_colorFrameReader);
-  if(FAILED(hr)){
-    printf("Failed to open color frame reader!\n");
-    exit(10);
-  }
-  
-  //release the color frame source
-  SafeRelease(colorFrameSource);
-
-  //allocate color buffer
-  m_colorBuffer = new uint32[1920 * 1080];
+	//allocate color buffer
+	m_colorBuffer = new uint32[1920 * 1080];
  
-  //get body frame source
-  IBodyFrameSource* bodyFrameSource;
-  hr = m_sensor->get_BodyFrameSource(&bodyFrameSource);
-  if (FAILED(hr)) {
-	  printf("Failed to get body frame source!\n");
-	  exit(10);
-  }
+	//get body frame source
+	IBodyFrameSource* bodyFrameSource;
+	hr = m_sensor->get_BodyFrameSource(&bodyFrameSource);
+	if (FAILED(hr)) {
+		printf("Failed to get body frame source!\n");
+		exit(10);
+	}
 
-  //get body frame reader
-  hr = bodyFrameSource->OpenReader(&m_bodyFrameReader);
-  if (FAILED(hr)){
-	  printf("Failed to open body frame reader!\n");
-	  exit(10);
-  }
+	//get body frame reader
+	hr = bodyFrameSource->OpenReader(&m_bodyFrameReader);
+	if (FAILED(hr)){
+		printf("Failed to open body frame reader!\n");
+		exit(10);
+	}
 
-  //release the body frame source
-  SafeRelease(bodyFrameSource);
+	//release body frame source
+	SafeRelease(bodyFrameSource);
   
-  // get gesture db, initialize gestures, gesture source/ readers... for each body
-  initializeGesture();
+	// get gesture db, initialize gestures, gesture source/ readers... for each body
+	initializeGesture();
 }
 
 void App::initializeGesture(){
@@ -98,18 +98,19 @@ void App::initializeGesture(){
 
 	// Gesture
 	gestures.resize(gestureCount);
-	for (int i = 0; i < BODY_COUNT; i++)
+	for (int i = 0; i < BODY_COUNT; i++){
 		bool_gestures[i].resize(gestureCount);
+	}
 
 	hr = gestureDatabase->get_AvailableGestures(gestureCount, &gestures[0]);
 	if (FAILED(hr)){
 		printf("Failed to get available gestures!\n");
 		return;
 	}
-	for (int count = 0; count < BODY_COUNT; count++) {
+	for (int i = 0; i < BODY_COUNT; i++) {
 		// Gesture
 		IVisualGestureBuilderFrameSource* gestureFrameSource;
-		hr = gestureFrameReader[count]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
+		hr = gestureFrameReader[i]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
 		if (FAILED (hr)){
 			printf("Failed to get gesture frame source from reader!\n");
 			return;
@@ -138,90 +139,83 @@ void App::initializeGesture(){
 
 void App::Tick(float deltaTime) {
 
-  HRESULT hr;
+	HRESULT hr;
 
-  //COLOR
-  IColorFrame* colorFrame;
-  hr = m_colorFrameReader->AcquireLatestFrame(&colorFrame);
-  if(FAILED(hr))
-    return;
+	//COLOR
+	IColorFrame* colorFrame;
+	hr = m_colorFrameReader->AcquireLatestFrame(&colorFrame);
+	if(FAILED(hr)) return;
 
-  hr = colorFrame->CopyConvertedFrameDataToArray(
-    1920 * 1080 * 4, (BYTE*)m_colorBuffer, ColorImageFormat_Bgra);
-  if(FAILED(hr))
-    return;
+	hr = colorFrame->CopyConvertedFrameDataToArray(1920 * 1080 * 4, (BYTE*)m_colorBuffer, ColorImageFormat_Bgra);
+	if(FAILED(hr)) return;
 
-  SafeRelease(colorFrame);
+	SafeRelease(colorFrame);
 
-  for (int i = 0; i < 1920 * 1080; ++i){
-	m_pixelBuffer[i] = m_colorBuffer[i];
-  }
+	for (int i = 0; i < 1920 * 1080; ++i){
+		m_pixelBuffer[i] = m_colorBuffer[i];
+	}
 
-  //BODIES
-  IBodyFrame* bodyFrame;
-  hr = m_bodyFrameReader->AcquireLatestFrame(&bodyFrame);
-  if (FAILED(hr))
-	  return;
+	//BODIES
+	IBodyFrame* bodyFrame;
+	hr = m_bodyFrameReader->AcquireLatestFrame(&bodyFrame);
+	if (FAILED(hr))
+		return;
 
-  hr = bodyFrame->GetAndRefreshBodyData(_countof(m_bodies), m_bodies);
-  bool bHaveBodyData = SUCCEEDED(hr);
+ 	hr = bodyFrame->GetAndRefreshBodyData(_countof(m_bodies), m_bodies);
+	bool bHaveBodyData = SUCCEEDED(hr);
+	if (FAILED(hr)) return;
+	
+	SafeRelease(bodyFrame);
 
-  if (FAILED(hr)) return;
+	// KEEP ORDER OF BODIES THE SAME (FROM LEFT TO RIGHT)
+	orderPeople();
 
-  SafeRelease(bodyFrame);
+	for (int bodyIndex = 0; bodyIndex < BODY_COUNT; bodyIndex++) {
+		IBody *body = m_bodies[bodyIndex];
 
-  // KEEP ORDER OF BODIES THE SAME (FROM LEFT TO RIGHT)
-  orderPeople();
+		//Get the tracking status for the body, if it's not tracked we'll skip it
+		bool isTracked = false;
+		hr = body->get_IsTracked(&isTracked);
+		if (FAILED(hr) || isTracked == false) continue;
 
-  for (int bodyIndex = 0; bodyIndex < BODY_COUNT; bodyIndex++) {
-	  IBody *body = m_bodies[bodyIndex];
+		// get the tracking ID of this body
+		UINT64 bodyTId;
+		hr = body->get_TrackingId(&bodyTId);
 
-	  //Get the tracking status for the body, if it's not tracked we'll skip it
-	  bool isTracked = false;
-	  hr = body->get_IsTracked(&isTracked);
-	  if (FAILED(hr) || isTracked == false) {
-		  /*printf("Failed to get if body is tracked! %d \n", isTracked);*/
-		  continue;
-	  }
-
-	  // get the tracking ID of this body
-	  UINT64 bodyTId;
-	  hr = body->get_TrackingId(&bodyTId);
-
-	  if (SUCCEEDED(hr)){
-		  IVisualGestureBuilderFrameSource* gestureFrameSource;
-		  hr = gestureFrameReader[bodyIndex]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
-		  // update the face frame source with the tracking ID
-		  gestureFrameSource->put_TrackingId(bodyTId);
-	  }
+		if (SUCCEEDED(hr)){
+			IVisualGestureBuilderFrameSource* gestureFrameSource;
+			hr = gestureFrameReader[bodyIndex]->get_VisualGestureBuilderFrameSource(&gestureFrameSource);
+			// update the face frame source with the tracking ID
+			gestureFrameSource->put_TrackingId(bodyTId);
+		}
 
 	  
-	  if (bodyIndex != 1) {
-		  updateLean(body, bodyIndex);
-		  if (!lean[bodyIndex][0] && !lean[bodyIndex][1] && !lean[bodyIndex][2] && !lean[bodyIndex][3]) {
-			  updateCustomGestures(bodyIndex);
-			  int i = 0;
-			  while ((i < bool_gestures[bodyIndex].size()) && !(bool_gestures[bodyIndex][i])){
-			  	  i++;
-			  }
-			  // if no custom gestures were detected:
-			  if (i == bool_gestures[bodyIndex].size()) {
-				  updateArmRaise(body, bodyIndex);
-				  if (!handraised[bodyIndex]) {
-					  updateHandState(body, bodyIndex);
-				  }
-			  }
-		  }
-	  }
-	  else {
-		  updateCustomGestures(bodyIndex);
-	  }
-  }
-  if (bHaveBodyData) {
-	  for (int i = 0; i < _countof(m_bodies); ++i) {
-		  SafeRelease(m_bodies[i]);
-	  }
-  }
+		if (bodyIndex != 1) {
+			updateLean(body, bodyIndex);
+			if (!lean[bodyIndex][0] && !lean[bodyIndex][1] && !lean[bodyIndex][2] && !lean[bodyIndex][3]) {
+				updateCustomGestures(bodyIndex);
+				int i = 0;
+				while ((i < bool_gestures[bodyIndex].size()) && !(bool_gestures[bodyIndex][i])){
+			  		i++;
+				}
+				// if no custom gestures were detected:
+				if (i == bool_gestures[bodyIndex].size()) {
+					updateArmRaise(body, bodyIndex);
+					if (!handraised[bodyIndex]) {
+						updateHandState(body, bodyIndex);
+					}
+				}
+			}
+		}
+		else {
+			updateCustomGestures(bodyIndex);
+		}
+	}
+	if (bHaveBodyData) {
+		for (int i = 0; i < _countof(m_bodies); ++i) {
+			SafeRelease(m_bodies[i]);
+		}
+	}
 }
 
 void App::orderPeople(){
@@ -463,8 +457,7 @@ void App::updateGestureHelper(const CComPtr<IVisualGestureBuilderFrame>& gesture
 						//printf("Our gesture %s is detected with %f confidence!!!\n", name.c_str(), confidence);
 					}
 				}
-			} //end else (more than one person)
-			
+			} //end else (more than one person)	
 		} // end if succeeded...
 	} //end discrete
 	// didn't end up using because bad result
@@ -493,25 +486,25 @@ void App::sendMessage(std::string message_name, int message_value, int body_inde
 }
 
 double App::GetCurrentSeconds() {
-		time_t timer;
-		struct tm y2k = { 0 };
-		double seconds;
+	time_t timer;
+	struct tm y2k = { 0 };
+	double seconds;
 
-		y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
-		y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
+	y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
+	y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
 
-		time(&timer);  /* get current time; same as: timer = time(NULL)  */
+	time(&timer);  /* get current time; same as: timer = time(NULL)  */
 
-		return difftime(timer, mktime(&y2k));
+	return difftime(timer, mktime(&y2k));
 }
 
 void App::Shutdown(){
-  // clean up
-  delete[] m_colorBuffer;
-  SafeRelease(m_colorFrameReader);
-  SafeRelease(m_bodyFrameReader);
-  for (int i = 0; i < BODY_COUNT; ++i){
-	SafeRelease(gestureFrameReader[i]);
-  }
-  SafeRelease(m_sensor);
+	// clean up
+	delete[] m_colorBuffer;
+	SafeRelease(m_colorFrameReader);
+	SafeRelease(m_bodyFrameReader);
+	for (int i = 0; i < BODY_COUNT; ++i){
+		SafeRelease(gestureFrameReader[i]);
+	}
+	SafeRelease(m_sensor);
 }
